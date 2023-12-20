@@ -99,7 +99,7 @@ uint8_t pe_load_imports(const pe_t *self, uint8_t *mem, size_t mem_size){
       uint64_t lookup_address = lookup_table->u1.AddressOfData;
 
       if((lookup_address & IMAGE_ORDINAL_FLAG64) != 0) {
-        char *fn_name = (char *) (lookup_address & 0xffffffff);
+        char *fn_name = (char *) (mem + (lookup_address & 0xffffffff));
         fn = GetProcAddress(lib, fn_name);
         if(fn == NULL){
           fprintf(stderr, "Failed to find \"%s\" in \"%s\"", fn_name, dll_name);
