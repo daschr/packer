@@ -76,7 +76,7 @@ int main(int ac, char *as[]){
     if(pe==NULL){
       fprintf(stderr, "Failed reading pe info\n");
       free(buf);
-      flcose(fd);
+      fclose(fd);
       return 1;
     }
 

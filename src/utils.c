@@ -51,7 +51,7 @@ uint8_t pe_load_aligned_into_memory(const pe_t *self, uint8_t *mem, size_t mem_s
         aligned_mem_pos + section_table[i].SizeOfRawData, mem_size      );
       return 0;
     }
-    printf("[pe_load_aligned_into_memory] storing section %s\n\
+    printf("[pe_load_aligned_into_memory] storing section \"%s\"\n\
     PointerToRawData: %lx\n\
     SizeOfRawData: %lx\n\
     VirtualAddress: %lx\n\
@@ -145,7 +145,7 @@ uint8_t pe_relocate_in_mem(const pe_t *self, uint8_t *mem, size_t mem_size){
   }
 
   size_t num_relocation_tables = basereloc->Size/IMAGE_SIZEOF_BASE_RELOCATION;
-  printf("[pe_relocate_in_mem] basereloc: virtualaddress: %lx size: %lx number of relocation tables\n", 
+  printf("[pe_relocate_in_mem] basereloc: virtualaddress: %lx size: %lx number of relocation tables: %llu\n", 
           basereloc->VirtualAddress, 
           basereloc->Size, 
           num_relocation_tables);  
@@ -253,6 +253,7 @@ pe_t *pe_new(const uint8_t *data, size_t data_len){
    
   memcpy(&(self->info.optional_header), data+pos, opt_header_size);
 
+  pos+=opt_header_size;
 
   printf("read optional header\n");
   self->info.section_table = malloc(sizeof(IMAGE_SECTION_HEADER)*self->info.file_header.NumberOfSections);
@@ -268,6 +269,8 @@ pe_t *pe_new(const uint8_t *data, size_t data_len){
     printf("ERROR: data_len: %llu<%llu", data_len,pos+sizeof(IMAGE_SECTION_HEADER)*self->info.file_header.NumberOfSections );
     goto error;
   }
+
+  printf("section_header start: %llx\n", pos);
 
   printf("data_len: %llu\n", data_len);
   for(size_t i=0;i<self->info.file_header.NumberOfSections;++i){
