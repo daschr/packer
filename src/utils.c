@@ -102,7 +102,7 @@ uint8_t pe_load_imports(const pe_t *self, uint8_t *mem, size_t mem_size){
         char *fn_name = (char *) (mem + (lookup_address & 0xffffffff));
         fn = GetProcAddress(lib, fn_name);
         if(fn == NULL){
-          fprintf(stderr, "Failed to find \"%s\" in \"%s\"", fn_name, dll_name);
+          fprintf(stderr, "Failed to find \"%s\" in \"%s\"\n", fn_name, dll_name);
           return 0;
         }
         printf("Loading \"%s\" from \"%s\"\n", fn_name, dll_name);
@@ -110,7 +110,7 @@ uint8_t pe_load_imports(const pe_t *self, uint8_t *mem, size_t mem_size){
         IMAGE_IMPORT_BY_NAME *import = (IMAGE_IMPORT_BY_NAME *) (mem + lookup_address);
         fn = GetProcAddress(lib, import->Name);
         if(fn == NULL){
-          fprintf(stderr, "Failed to find \"%s\" in \"%s\"", import->Name, dll_name);
+          fprintf(stderr, "Failed to find \"%s\" in \"%s\"\n", import->Name, dll_name);
           return 0;
         }
         printf("Loading \"%s\" from \"%s\"\n", import->Name, dll_name);
