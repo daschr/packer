@@ -125,11 +125,6 @@ int main(int ac, char *as[]){
 
   pe_free(pe);
 
-  char buf[2];
-  printf("waiting for input");
-  fread(buf, 1, 1, stdin);
-    
-  printf("jumping...\n");
   entrypoint();
   
   return 0;

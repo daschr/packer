@@ -51,7 +51,8 @@ uint8_t pe_load_aligned_into_memory(const pe_t *self, uint8_t *mem, size_t mem_s
         aligned_mem_pos + section_table[i].SizeOfRawData, mem_size      );
       return 0;
     }
-    printf("[pe_load_aligned_into_memory] storing section \"%s\"\n\
+    
+    /*printf("[pe_load_aligned_into_memory] storing section \"%s\"\n\
     PointerToRawData: %lx\n\
     SizeOfRawData: %lx\n\
     VirtualAddress: %lx\n\
@@ -61,12 +62,12 @@ uint8_t pe_load_aligned_into_memory(const pe_t *self, uint8_t *mem, size_t mem_s
       section_table[i].SizeOfRawData,
       section_table[i].VirtualAddress,
       mem+section_table[i].VirtualAddress);
-
+    */
     memcpy(mem + section_table[i].VirtualAddress, self->data+section_table[i].PointerToRawData, section_table[i].SizeOfRawData);
     aligned_mem_pos+=round_up(section_table[i].Misc.VirtualSize, alignment);  
   }
 
-  printf("[pe_load_aligned_into_memory] aligned_mem_pos: %p\n", mem+aligned_mem_pos);
+  //printf("[pe_load_aligned_into_memory] aligned_mem_pos: %p\n", mem+aligned_mem_pos);
 
   return 1; 
 }
@@ -77,10 +78,11 @@ uint8_t pe_load_imports(const pe_t *self, uint8_t *mem, size_t mem_size){
     :self->info.optional_header.opt_header32.DataDirectory;
 
   if(data_dir[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress==0){
-    printf("[pe_load_imports] got no imports\n");
+    fprintf(stderr, "[pe_load_imports] got no imports\n");
     return 1;
   }
   
+  const uint64_t address_mask = self->info.is_64bit?UINT64_MAX>>1:UINT32_MAX>>1;
   IMAGE_IMPORT_DESCRIPTOR *import_table = (IMAGE_IMPORT_DESCRIPTOR *) (mem + data_dir[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
 
   while(import_table->OriginalFirstThunk != 0){
@@ -98,22 +100,23 @@ uint8_t pe_load_imports(const pe_t *self, uint8_t *mem, size_t mem_size){
       FARPROC fn = NULL;
       uint64_t lookup_address = lookup_table->u1.AddressOfData;
 
+
       if((lookup_address & IMAGE_ORDINAL_FLAG64) != 0) {
-        char *fn_name = (char *) (mem + (lookup_address & 0xffffffff));
-        fn = GetProcAddress(lib, fn_name);
+        char *fn_ordinal = (char *) (lookup_address & address_mask);
+        fn = GetProcAddress(lib, fn_ordinal);
         if(fn == NULL){
-          fprintf(stderr, "Failed to find \"%s\" in \"%s\"\n", fn_name, dll_name);
+          fprintf(stderr, "Failed to find %llx (ordinal) in \"%s\"\n", fn_ordinal, dll_name);
           return 0;
         }
-        printf("Loading \"%s\" from \"%s\"\n", fn_name, dll_name);
+        //printf("Loading %llx (ordinal) from \"%s\"\n", fn_ordinal, dll_name);
       }else{
         IMAGE_IMPORT_BY_NAME *import = (IMAGE_IMPORT_BY_NAME *) (mem + lookup_address);
         fn = GetProcAddress(lib, import->Name);
         if(fn == NULL){
-          fprintf(stderr, "Failed to find \"%s\" in \"%s\"\n", import->Name, dll_name);
+          fprintf(stderr, "Failed to find \"%s\" (non-ordinal) in \"%s\"\n", import->Name, dll_name);
           return 0;
         }
-        printf("Loading \"%s\" from \"%s\"\n", import->Name, dll_name);
+        //printf("Loading \"%s\" from (non-ordinal) \"%s\"\n", import->Name, dll_name);
       }
 
       address_table->u1.Function=(uint64_t) fn;
@@ -145,22 +148,23 @@ uint8_t pe_relocate_in_mem(const pe_t *self, uint8_t *mem, size_t mem_size){
   }
 
   size_t num_relocation_tables = basereloc->Size/IMAGE_SIZEOF_BASE_RELOCATION;
-  printf("[pe_relocate_in_mem] basereloc: virtualaddress: %lx size: %lx number of relocation tables: %llu\n", 
+  /*
+    printf("[pe_relocate_in_mem] basereloc: virtualaddress: %lx size: %lx number of relocation tables: %llu\n", 
           basereloc->VirtualAddress, 
           basereloc->Size, 
           num_relocation_tables);  
-
+  */
   
   int64_t delta = (int64_t) mem - self->info.optional_header.opt_header64.ImageBase;
-  printf("[pe_relocate_in_mem] mem: %p (mem) - %llx (imagebase) = %llx (delta)\n",  (void *) mem, self->info.optional_header.opt_header64.ImageBase, delta);
+  //printf("[pe_relocate_in_mem] mem: %p (mem) - %llx (imagebase) = %llx (delta)\n",  (void *) mem, self->info.optional_header.opt_header64.ImageBase, delta);
   
   IMAGE_BASE_RELOCATION *relocation_table = (IMAGE_BASE_RELOCATION *) (mem + basereloc->VirtualAddress);
-  printf("[pe_relocate_in_mem] basereloc address in image: %p\n", (void *) relocation_table);
+  //printf("[pe_relocate_in_mem] basereloc address in image: %p\n", (void *) relocation_table);
    
   while(relocation_table->VirtualAddress){
-    printf("relocationtable(%p): VirtualAddress: %lx SizeOfBlock: %lx\n", (void *) relocation_table, relocation_table->VirtualAddress, relocation_table->SizeOfBlock);
+    //printf("relocationtable(%p): VirtualAddress: %lx SizeOfBlock: %lx\n", (void *) relocation_table, relocation_table->VirtualAddress, relocation_table->SizeOfBlock);
     size_t num_relocations = (relocation_table->SizeOfBlock-sizeof(IMAGE_BASE_RELOCATION)) / sizeof(uint16_t);
-    printf("[pe_relocate_in_mem] number of relocations: %llu\n", num_relocations);
+    //printf("[pe_relocate_in_mem] number of relocations: %llu\n", num_relocations);
 
     uint16_t *relocation_data=(uint16_t *) &relocation_table[1];
     
@@ -171,13 +175,13 @@ uint8_t pe_relocate_in_mem(const pe_t *self, uint8_t *mem, size_t mem_size){
       uint8_t **ptr = (uint8_t **) (mem + relocation_table->VirtualAddress + offset);
 
       if(type == IMAGE_REL_BASED_DIR64){
-        printf("[pe_relocate_in_mem] relocate address at %p\n", (void *) ptr);
+        //printf("[pe_relocate_in_mem] relocate address at %p\n", (void *) ptr);
         if((uint64_t) ptr> (uint64_t) mem+mem_size){
           fprintf(stderr, "ptr: %p is bigger than mem + memsize: %p\n", (void *) ptr, (void *) (mem + mem_size));
         }else{
           *ptr+=delta;
         }
-        printf("[pe_relocate_in_mem] relocated\n");
+        //printf("[pe_relocate_in_mem] relocated\n");
       }
     }
   
@@ -189,17 +193,17 @@ uint8_t pe_relocate_in_mem(const pe_t *self, uint8_t *mem, size_t mem_size){
 }
 
 uint8_t pe_load_into_memory(const pe_t *self, uint8_t *mem, size_t mem_size) {
-  printf("loading aligned into memory...\n");
+  //printf("loading aligned into memory...\n");
   if(!pe_load_aligned_into_memory(self, mem, mem_size)){
     return 0;
   }
 
-  printf("loading imports...\n");
+  //printf("loading imports...\n");
   if(!pe_load_imports(self, mem, mem_size)){
     return 0;
   }
   
-  printf("relocating in memory...\n");
+  //printf("relocating in memory...\n");
   if(!pe_relocate_in_mem(self, mem, mem_size)){
     return 0;
   }
@@ -223,13 +227,14 @@ pe_t *pe_new(const uint8_t *data, size_t data_len){
   
   pos=self->info.mz_header.offsetToPE;
   
-  printf("Found PE at %016llx\n", pos);
+  //printf("Found PE at %016llx\n", pos);
   pos+=4;
   
   
   memcpy(&self->info.file_header, data+pos, sizeof(IMAGE_FILE_HEADER));
   pos+=sizeof(IMAGE_FILE_HEADER);
 
+/*
   printf("file_header:\n\tSizeOfOptionalHeader: %d\n\
 \tNumberOfSections: %d\n\
 \tTimeDateStamp: %lu\n\
@@ -239,7 +244,8 @@ pe_t *pe_new(const uint8_t *data, size_t data_len){
     self->info.file_header.TimeDateStamp,
     self->info.file_header.Machine
   );
-
+*/
+  
   if((data[pos+1] == 0x01 || data[pos+1] == 0x02) && data[pos] == 0x0b){
     self->info.is_64bit=data[pos+1] == 0x02;
   }else{
@@ -247,7 +253,7 @@ pe_t *pe_new(const uint8_t *data, size_t data_len){
     goto error;
   }
   
-  printf("is_opt_header64: %d\n", self->info.is_64bit);
+  //printf("is_opt_header64: %d\n", self->info.is_64bit);
 
   const size_t opt_header_size = self->info.is_64bit?sizeof(IMAGE_OPTIONAL_HEADER64):sizeof(IMAGE_OPTIONAL_HEADER32);
    
@@ -255,24 +261,24 @@ pe_t *pe_new(const uint8_t *data, size_t data_len){
 
   pos+=opt_header_size;
 
-  printf("read optional header\n");
+  //printf("read optional header\n");
   self->info.section_table = malloc(sizeof(IMAGE_SECTION_HEADER)*self->info.file_header.NumberOfSections);
 
   if(self->info.section_table==NULL){
-    printf("Failed to allocate section_table\n");
+    //printf("Failed to allocate section_table\n");
     goto error;
   }
   
-  printf("Allocated %d sections\n", self->info.file_header.NumberOfSections);
+  //printf("Allocated %d sections\n", self->info.file_header.NumberOfSections);
 
   if(data_len  < pos+sizeof(IMAGE_SECTION_HEADER)*self->info.file_header.NumberOfSections){
-    printf("ERROR: data_len: %llu<%llu", data_len,pos+sizeof(IMAGE_SECTION_HEADER)*self->info.file_header.NumberOfSections );
+    //printf("ERROR: data_len: %llu<%llu", data_len,pos+sizeof(IMAGE_SECTION_HEADER)*self->info.file_header.NumberOfSections );
     goto error;
   }
 
-  printf("section_header start: %llx\n", pos);
+  //printf("section_header start: %llx\n", pos);
 
-  printf("data_len: %llu\n", data_len);
+  //printf("data_len: %llu\n", data_len);
   for(size_t i=0;i<self->info.file_header.NumberOfSections;++i){
     memcpy( &(self->info.section_table[i]), 
             data+pos+sizeof(IMAGE_SECTION_HEADER)*i, 
