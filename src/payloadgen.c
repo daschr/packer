@@ -12,7 +12,7 @@ uint8_t gen_payload(const char *in_file, const char *out_file){
   if(in_fd == NULL || out_fd == NULL) return 0;
 
   #define HEADER "#ifndef _INC_HEADER\n#define _INC_HEADER\n#include <stdlib.h>\n#include <stdint.h>\nuint8_t payload[]={"
-  #define TRAILER "size_t payload_len=sizeof(payload)/sizeof(char);\n#endif"
+  #define TRAILER "size_t payload_len=sizeof(payload)/sizeof(uint8_t);\n#endif"
 
   fseek(in_fd, 0, SEEK_END);
   size_t in_size = ftell(in_fd);
