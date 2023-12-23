@@ -7,7 +7,7 @@
 
 uint8_t gen_key(const char *out, size_t keylen){
   #define HEADER "#ifndef _INC_KEY\n#define _INC_KEY\n#include <stdlib.h>\n#include <stdint.h>\nconst uint8_t key[]={"
-  #define TRAILER "const size_t key_len=sizeof(key)/sizeof(char);\n#endif\n"
+  #define TRAILER "const size_t key_len=sizeof(key)/sizeof(uint8_t);\n#endif\n"
   
   FILE *fd = fopen(out, "w");
   if(fd == NULL) return 0;
