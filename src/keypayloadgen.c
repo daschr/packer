@@ -1,3 +1,4 @@
+#include <bits/floatn-common.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -151,10 +152,19 @@ int main(int ac, char *as[]){
     return  1;
   }
 
-  size_t key_len;
-  if(sscanf(as[2], "%lu", &key_len)!=1) {
+  uint32_t key_len;
+  if(sscanf(as[2], "%u", &key_len)!=1) {
     fprintf(stderr, "\"%s\" is not a non-negative number!\n", as[2]);
     return 0;
+  }
+  
+  if(key_len==0){
+    fprintf(stderr, "Key length cannot be zero\n");
+    return 0;
+  }
+  
+  if(__builtin_popcount(key_len) != 1){
+    key_len = 1<<(31-__builtin_clz(key_len));
   }
 
   uint8_t *key = generate_key(key_len);
