@@ -13,9 +13,8 @@
 #include <memoryapi.h>
 
 void decrypt_inmem(const uint8_t *key, const size_t key_len, uint8_t *payload, const size_t payload_len) {
-    size_t km=key_len-1;
     for(size_t p=0; p<payload_len; ++p) {
-        payload[p]^=key[p&km];
+        payload[p]=key[payload[p]];
     }
 }
 
