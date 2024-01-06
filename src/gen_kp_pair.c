@@ -6,6 +6,9 @@
 #include <stdint.h>
 #include <string.h>
 
+#define DEFAULT_KEY_NAME "key.h"
+#define DEFAULT_PAYLOAD_NAME "payload.h"
+
 uint8_t store_key(const uint8_t *key, size_t key_len, const char *out_file){
   #define HEADER "#ifndef _INC_KEY\n#define _INC_KEY\n#include <stdlib.h>\n#include <stdint.h>\nconst uint8_t key[]={"
   #define TRAILER "const size_t key_len=sizeof(key)/sizeof(uint8_t);\n#endif\n"
@@ -147,8 +150,8 @@ uint8_t *generate_key(size_t len) {
 }
 
 int main(int ac, char *as[]){
-  if(ac != 5) {
-    fprintf(stderr, "Usage: %s [IN file] [key length] [OUT key] [OUT payload]\n", as[0]);
+  if(ac < 3) {
+    fprintf(stderr, "Usage: %s [IN file] [key length] [?OUT key] [?OUT payload]\n", as[0]);
     return  1;
   }
 
@@ -170,13 +173,16 @@ int main(int ac, char *as[]){
   uint8_t *key = generate_key(key_len);
   if(key == NULL) return 1;
 
-  if(!store_key(key, key_len, as[3]))
+
+  const char *key_outfile = ac > 3?as[3]:DEFAULT_KEY_NAME, *payload_outfile=ac>4?as[4]:DEFAULT_PAYLOAD_NAME;
+  
+  if(!store_key(key, key_len, key_outfile))
     return 1;
 
-  if(!store_payload(as[1], key, key_len, as[4]))
+  if(!store_payload(as[1], key, key_len, payload_outfile))
     return 1;
 
-  printf("Stored key in \"%s\" and the encrypted file in \"%s\"\n", as[3], as[4]);
+  printf("Stored key in \"%s\" and the encrypted file in \"%s\"\n", key_outfile, payload_outfile);
 
   return 0;
 }
