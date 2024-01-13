@@ -52,6 +52,7 @@ uint8_t pe_load_aligned_into_memory(const pe_t *self, uint8_t *mem, size_t mem_s
             return 0;
         }
 
+
         memcpy(mem + section_table[i].VirtualAddress, self->data+section_table[i].PointerToRawData, section_table[i].SizeOfRawData);
         aligned_mem_pos+=round_up(section_table[i].Misc.VirtualSize, alignment);
     }
@@ -224,6 +225,7 @@ pe_t *pe_new(const uint8_t *data, size_t data_len) {
     }
 
     for(size_t i=0; i<self->info.file_header.NumberOfSections; ++i) {
+
         memcpy( &(self->info.section_table[i]),
                 data+pos+sizeof(IMAGE_SECTION_HEADER)*i,
                 sizeof(IMAGE_SECTION_HEADER));
