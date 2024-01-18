@@ -1,4 +1,4 @@
-# A Simple Packer
+# A Simple Packer - low entropy version
 See https://dsxm.de/simple-packer/
 
 ## Usage
